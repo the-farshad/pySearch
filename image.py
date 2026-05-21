@@ -1,24 +1,30 @@
-from bs4 import BeautifulSoup
-import requests
-from PIL import Image
-from io import BytesIO
+"""Download and save image-search results to a local folder."""
+
 import os
+from io import BytesIO
 
-def save_image(search_engines, params, search_word):
-    image_requests = requests.get(search_engines, params=params)
-    soup = BeautifulSoup(image_requests.text, "html.parser")
+import requests
+from bs4 import BeautifulSoup
+from PIL import Image
+
+
+def save_image(search_engine, params, search_word):
+    response = requests.get(search_engine, params=params)
+    soup = BeautifulSoup(response.text, "html.parser")
     links = soup.findAll("a", {"class": "thumb"})
-    images_dir = "./images/" + search_word.replace(" ", "-").capitalize()
 
-    if not os.path.isdir(images_dir):
-        os.makedirs(images_dir)
+    images_dir = os.path.join(
+        "images", search_word.replace(" ", "-").capitalize()
+    )
+    os.makedirs(images_dir, exist_ok=True)
 
     for item in links:
+        href = item.attrs["href"]
         try:
-            image_object = requests.get(item.attrs["href"])
-            print("Getting > ", item.attrs["href"])
-            title = item.attrs["href"].split("/")[-1]
-            image_link = Image.open(BytesIO(image_object.content))
-            image_link.save(images_dir + "/" + title, image_link.format)
-        except:
-            print("Sorry Buddy, could not save this image :) ")
+            print("Getting >", href)
+            image_response = requests.get(href)
+            title = href.split("/")[-1]
+            image = Image.open(BytesIO(image_response.content))
+            image.save(os.path.join(images_dir, title), image.format)
+        except Exception:
+            print("Could not save this image:", href)
